@@ -6,64 +6,64 @@ import os
 def generate_tactical_dataset(n_samples=10000):
     data = []
     
-    # Definición de tipos de objetos y sus perfiles lógicos
-    # Formato: (Nombre, Es_Amigo[1/0], Prob_IFF_Valido, RCS_esperado)
+    # Object types and their logical profiles
+    # Format: (Name, Is_Friend[1/0], Prob_IFF_Valid, Expected_RCS)
     profiles = [
-        ('Caza_Aliado', 1, 0.95, 'Medio'),
-        ('Caza_Aliado_Stealth', 1, 0.90, 'Pequeño'),
-        ('Comercial', 1, 0.99, 'Grande'),
-        ('Dron_Aliado', 1, 0.85, 'Pequeño'),
-        ('Caza_Enemigo', 0, 0.05, 'Medio'),
-        ('Caza_Enemigo_Stealth', 0, 0.01, 'Muy_Pequeño'),
-        ('Dron_Enemigo', 0, 0.02, 'Pequeño'),
-        ('Misil_Crucero', 0, 0.01, 'Pequeño')
+        ('Allied_Fighter', 1, 0.95, 'Medium'),
+        ('Allied_Stealth_Fighter', 1, 0.90, 'Small'),
+        ('Commercial', 1, 0.99, 'Large'),
+        ('Allied_Drone', 1, 0.85, 'Small'),
+        ('Enemy_Fighter', 0, 0.05, 'Medium'),
+        ('Enemy_Stealth_Fighter', 0, 0.01, 'Very_Small'),
+        ('Enemy_Drone', 0, 0.02, 'Small'),
+        ('Cruise_Missile', 0, 0.01, 'Small')
     ]
 
     for _ in range(n_samples):
-        # Seleccionamos un perfil aleatorio
+        # Select a random profile
         name, is_friend, p_iff, rcs_base = random.choice(profiles)
         
-        # 1. Respuesta IFF (Simulamos fallos como el de Kuwait)
+        # 1. IFF Response (Simulating failures)
         iff_rand = random.random()
         if iff_rand < p_iff:
-            iff = 'Valida'
+            iff = 'Valid'
         elif iff_rand < p_iff + 0.05:
-            iff = 'Invalida' # Error de código
+            iff = 'Invalid' # Code error
         else:
-            iff = 'Ausente' # No responde o apagado
+            iff = 'Absent' # Not responding or turned off
 
-        # 2. Perfil de Vuelo
+        # 2. Flight Profile
         if is_friend:
-            perfil = np.random.choice(['Correcto', 'Desviado'], p=[0.8, 0.2])
+            profile = np.random.choice(['Correct', 'Deviated'], p=[0.8, 0.2])
         else:
-            perfil = np.random.choice(['Erratico', 'Desviado'], p=[0.7, 0.3])
+            profile = np.random.choice(['Erratic', 'Deviated'], p=[0.7, 0.3])
 
-        # 3. Firma Radar (RCS) - Con ruido para engañar al árbol
+        # 3. Radar Signature (RCS) - With noise to fool the tree
         rcs = rcs_base
-        if random.random() < 0.1: # 10% de error de lectura
-            rcs = random.choice(['Muy_Pequeño', 'Pequeño', 'Medio', 'Grande'])
+        if random.random() < 0.1: # 10% reading error
+            rcs = random.choice(['Very_Small', 'Small', 'Medium', 'Large'])
 
-        # 4. Proximidad Aliada (en Km)
+        # 4. Allied Proximity (in Km)
         if is_friend:
             prox = random.uniform(0, 50)
         else:
             prox = random.uniform(30, 200)
         
-        # Discretizamos proximidad para ID3 (Cerca, Media, Lejos)
-        if prox < 20: prox_cat = 'Cerca'
-        elif prox < 80: prox_cat = 'Media'
-        else: prox_cat = 'Lejos'
+        # Discretize proximity for ID3 (Close, Medium, Far)
+        if prox < 20: prox_cat = 'Close'
+        elif prox < 80: prox_cat = 'Medium'
+        else: prox_cat = 'Far'
 
-        data.append([rcs, iff, perfil, prox_cat, is_friend])
+        data.append([rcs, iff, profile, prox_cat, is_friend])
 
-    columns = ['Firma_Radar', 'Respuesta_IFF', 'Perfil_Vuelo', 'Proximidad_Aliada', 'Target_Amigo']
+    columns = ['Radar_Signature', 'IFF_Response', 'Flight_Profile', 'Allied_Proximity', 'Target_Friend']
     df = pd.DataFrame(data, columns=columns)
     
     script_dir = os.path.dirname(os.path.abspath(__file__))
     output_path = os.path.join(script_dir, 'dataset.csv')
     df.to_csv(output_path, index=False)
     
-    print(f"Dataset generado con {n_samples} registros.")
+    print(f"Dataset generated with {n_samples} records.")
 
 if __name__ == "__main__":
     generate_tactical_dataset()

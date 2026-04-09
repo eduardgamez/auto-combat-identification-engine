@@ -2,70 +2,70 @@ import pandas as pd
 import numpy as np
 
 def sort_attributes(df):
-    """Ordena los atributos de un DataFrame por su entropía condicional respecto al Target."""
+    """Sorts the attributes of a DataFrame by their conditional entropy relative to the Target."""
     entropy_var_list = np.array([])
     attributes_list = df.columns[:-1]
-    target = df.columns[-1] # Identifica 'Target_Amigo' autónomamente
+    target = df.columns[-1] # Automatically identifies the target column (e.g., 'Target_Friend')
 
     for var in attributes_list:
         cond_entropy = 0
-        # Dividimos el dataset por cada valor posible del atributo
+        # Divide the dataset by each possible value of the attribute
         for val, subset in df.groupby(var):
-            # Calculamos la entropía del TARGET en este subconjunto
+            # Calculate the entropy of the TARGET in this subset
             probs = (subset[target].value_counts() / len(subset)).to_numpy()
             ent_subset = -np.sum(probs * np.log2(probs, where=(probs > 0), out=np.zeros_like(probs)))
             
-            # Sumamos la entropía pesada
+            # Add the weighted entropy
             weight = len(subset) / len(df)
             cond_entropy += weight * ent_subset
             
         entropy_var_list = np.append(entropy_var_list, cond_entropy)
 
-    # Ordenamos: el de menor entropía condicional es el que más información aporta
+    # Sort: the one with the lowest conditional entropy provides the most information
     sorted_indices = np.argsort(entropy_var_list)
     return np.array(attributes_list)[sorted_indices]
 
 def build_tree(df, sorted_attributes):
-    """Construye el árbol de decisión en memoria (como diccionarios anidados) para una velocidad extrema."""
+    """Builds the decision tree in memory (as nested dictionaries) for extreme speed."""
     target = df.columns[-1]
     
-    # Caso base 1: Nodo puro (todos los casos son de la misma clase, entropía = 0)
+    # Base case 1: Pure node (all instances belong to the same class, entropy = 0)
     if len(df[target].unique()) == 1:
         return df[target].iloc[0]
         
-    # Caso base 2: Si por algún motivo nos quedamos sin atributos para mirar, devolvemos la moda estadística
+    # Base case 2: If we run out of attributes to check, return the statistical mode
     if len(sorted_attributes) == 0:
         return df[target].mode()[0]
         
-    # Tomamos el primer atributo de la lista de prioridad
+    # Take the first attribute from the prioritized list
     attr = sorted_attributes[0]
     tree = {attr: {}}
     
-    # Construimos recursivamente las ramas para cada valor posible en los datos
+    # Recursively build branches for each possible value in the data
     for val, subset in df.groupby(attr):
         tree[attr][val] = build_tree(subset, sorted_attributes[1:])
         
-    # Guardamos la moda local por si nos llega un caso de prueba con un valor raro no visto en el entrenamiento
-    tree[attr]['__moda__'] = df[target].mode()[0]
+    # Save the local mode in case a test instance has a rare value not seen during training
+    tree[attr]['__mode__'] = df[target].mode()[0]
     
     return tree
 
 def predict_case(tree, row):
-    """Clasifica una sola fila de forma ultrarrápida usando el árbol preconstruido."""
-    # Si no es un diccionario, es que hemos llegado a una hoja de respuesta (0 o 1)
+    """Classifies a single row ultra-fast using the prebuilt tree."""
+    # If it's not a dictionary, we've reached an answer leaf (0 or 1)
     if not isinstance(tree, dict):
         return tree
         
-    # Extraemos el atributo que toca mirar en este nodo
+    # Extract the attribute to check at this node
     attr = list(tree.keys())[0]
     val = row[attr]
     
-    # Buscamos la rama que corresponde al valor de la fila
+    # Find the branch corresponding to the row's value
     branch = tree[attr].get(val)
     
-    # Si el valor no existía en el entrenamiento, devolvemos la moda para salvar el error
+    # If the value didn't exist in training, return the mode to prevent failure
     if branch is None:
-        return tree[attr]['__moda__']
+        return tree[attr]['__mode__']
         
-    # Repetimos para el siguiente nivel navegando por la rama
+    # Repeat for the next level by navigating down the branch
     return predict_case(branch, row)
