@@ -16,10 +16,11 @@
 *   `comparison/`: Scripts to contrast the Engine's performance against baseline sensors (IFF-only).
 
 ## Engine Architecture (Fast-ID3)
-The identifying engine is optimized for high-saturation environments using a two-phase approach:
+To guarantee ultra-fast execution in high-saturation combat scenarios, the engine's architecture is decoupled into three specialized functions centered around a nested dictionary data structure:
 
-1.  **Build Phase (Training)**: The `build_tree` function transforms the raw tactical data into a **Nested Dictionary Tree** in memory. It uses recursion to find the optimal split at each level based on conditional entropy. 
-2.  **Execution Phase (Inference)**: Unlike standard ID3 implementations that might re-filter data, our `predict_case` function performs a **Direct Memory Hash Lookup**. Classification time is `O(d)`, where `d` is the number of attributes, making it capable of processing thousands of detections per second.
+1.  **Attribute Prioritization (`sort_attributes`)**: First, the engine calculates the Conditional Shannon Entropy for each attribute across the dataset. This establishes a fixed tactical hierarchy indicating which sensors provide the most information gain.
+2.  **Tree Construction (`build_tree`)**: Using the sorted hierarchy, the system recursively segments the training data to build the ID3 decision tree. Crucially, this tree is instantiated as a **nested dictionary** in memory. Each key represents a specific sensor reading (like `{'Valida': ...}`), and its value holds either the next sub-dictionary (the next sensor to check) or a final classification (1 for Friend, 0 for Foe).
+3.  **Inference (`predict_case`)**: When evaluating a live target, the engine simply queries this root dictionary using the target's parameters. Instead of filtering data matrices or running complex "if-else" cascades, Python transverses the nested hash maps. Determining the classification is thus reduced to an instant sequence of memory lookups, optimizing execution speed to the maximum.
 
 ## Conclusion: Improvement
 By evolving from a single-sensor logic (**IFF-only**) to a multi-attribute decision tree (**ID3 Engine**), we increased identification reliability from **94.6% to 99.5%**. 
