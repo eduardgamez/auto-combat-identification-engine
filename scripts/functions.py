@@ -25,7 +25,10 @@ def sort_attributes(df):
     return np.array(attributes_list)[sorted_indices]
 
 def build_tree(df, sorted_attributes):
-    """Builds the decision tree in memory (as nested dictionaries) for extreme speed."""
+    """Builds the decision tree in memory (as nested dictionaries) for extreme speed.
+
+    `sorted_attributes` holds the attributes still available on this branch. At each node
+    they are re-ranked by Information Gain on the current subset, as ID3 requires."""
     target = df.columns[-1]
     
     # Base case 1: Pure node (all instances belong to the same class, entropy = 0)
@@ -36,7 +39,8 @@ def build_tree(df, sorted_attributes):
     if len(sorted_attributes) == 0:
         return df[target].mode()[0]
         
-    # Take the first attribute from the prioritized list
+    # Re-rank the remaining attributes on this node's subset and take the best one
+    sorted_attributes = sort_attributes(df[list(sorted_attributes) + [target]])
     attr = sorted_attributes[0]
     tree = {attr: {}}
     

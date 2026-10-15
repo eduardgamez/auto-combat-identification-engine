@@ -4,7 +4,7 @@
 ## Technical Description
 * **Architecture:** Non-parametric hierarchical classifier designed for **sensor fusion** and explainable decision-making.
 * **Data Flow:**
-  * **Source:** Synthetic tactical dataset with 10k detections, simulating a high-saturation air combat environment (e.g., Iran). *Generated via `python dataset/script_generator.py`.*
+  * **Source:** Synthetic tactical dataset with 10k detections, simulating a high-saturation air combat environment (e.g., Iran). *Generated via `python dataset/train_data_generator.py`.*
   * **Dimensions:** Symbolic feature vectors: IFF Response, Radar Signature/RCS, Flight Profile and BFT Proximity.
   * **Target:** Binary classification (1 Friend / 0 Foe) for weapon release authorization.
 * **Objective:** Minimize **Shannon Entropy** through **Information Gain** to achieve robust identification, even during primary transponder failure, preventing blue-on-blue incidents.
@@ -18,8 +18,8 @@
 ## Engine Architecture (Fast-ID3)
 To guarantee ultra-fast execution in high-saturation combat scenarios, the engine's architecture is decoupled into three specialized functions centered around a nested dictionary data structure:
 
-1.  **Attribute Prioritization (`sort_attributes`)**: First, the engine calculates the Conditional Shannon Entropy for each attribute across the dataset. This establishes a fixed tactical hierarchy indicating which sensors provide the most information gain.
-2.  **Tree Construction (`build_tree`)**: Using the sorted hierarchy, the system recursively segments the training data to build the ID3 decision tree. Crucially, this tree is instantiated as a **nested dictionary** in memory. Each key represents a specific sensor reading (like `{'Valida': ...}`), and its value holds either the next sub-dictionary (the next sensor to check) or a final classification (1 for Friend, 0 for Foe).
+1.  **Attribute Prioritization (`sort_attributes`)**: The engine calculates the Conditional Shannon Entropy of each attribute over a given set of detections, ranking the sensors by how much information gain they provide.
+2.  **Tree Construction (`build_tree`)**: The system recursively segments the training data to build the ID3 decision tree. At every node, the remaining attributes are re-ranked with `sort_attributes` on that node's subset, so each branch splits on the sensor that is most informative *for the detections that reached it* (true ID3), rather than following one global order. Crucially, this tree is instantiated as a **nested dictionary** in memory. Each key represents a specific sensor reading (like `{'Valida': ...}`), and its value holds either the next sub-dictionary (the next sensor to check) or a final classification (1 for Friend, 0 for Foe).
 3.  **Inference (`predict_case`)**: When evaluating a live target, the engine simply queries this root dictionary using the target's parameters. Instead of filtering data matrices or running complex "if-else" cascades, Python transverses the nested hash maps. Determining the classification is thus reduced to an instant sequence of memory lookups, optimizing execution speed to the maximum.
 
 ## Conclusion: Improvement
